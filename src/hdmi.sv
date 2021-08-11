@@ -45,6 +45,10 @@ module hdmi
     input logic reset,
     input logic [23:0] rgb,
     input logic [AUDIO_BIT_WIDTH-1:0] audio_sample_word [1:0],
+    
+    input logic setStart,
+    input logic [BIT_WIDTH-1:0] setStartX,
+    input logic [BIT_HEIGHT-1:0] setStartY,
 
     // These outputs go to your HDMI port
     output logic [2:0] tmds,
@@ -64,6 +68,14 @@ module hdmi
     output logic [BIT_WIDTH-1:0] screen_width,
     output logic [BIT_HEIGHT-1:0] screen_height
 );
+
+`ifdef RES0_720P
+localparam CODE4HOR = 1512;
+localparam CODE4VER = 836;
+`else
+localparam CODE4HOR = 1650;
+localparam CODE4VER = 750;
+`endif
 
 localparam int NUM_CHANNELS = 3;
 logic hsync;
@@ -102,8 +114,8 @@ generate
             end
         4:
         begin
-            assign frame_width = 1650;
-            assign frame_height = 750;
+            assign frame_width = CODE4HOR;
+            assign frame_height = CODE4VER;
             assign screen_width = 1280;
             assign screen_height = 720;
             assign hsync_porch_start = 110;
@@ -185,8 +197,13 @@ begin
     end
     else
     begin
-        cx <= cx == frame_width-1'b1 ? BIT_WIDTH'(0) : cx + 1'b1;
-        cy <= cx == frame_width-1'b1 ? cy == frame_height-1'b1 ? BIT_HEIGHT'(0) : cy + 1'b1 : cy;
+        if ( setStart && cx == frame_width-1'b1 ) begin
+          cx <= setStartX;
+          cy <= setStartY;
+        end else begin
+          cx <= cx == frame_width-1'b1 ? BIT_WIDTH'(0) : cx + 1'b1;
+          cy <= cx == frame_width-1'b1 ? cy == frame_height-1'b1 ? BIT_HEIGHT'(0) : cy + 1'b1 : cy;
+        end
     end
 end
 
