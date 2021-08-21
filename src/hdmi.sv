@@ -1,6 +1,8 @@
 // Implementation of HDMI Spec v1.4a
 // By Sameer Puri https://github.com/sameer
 
+import definePackage::*;
+
 module hdmi 
 #(
     // Defaults to 640x480 which should be supported by almost if not all HDMI sinks.
@@ -69,13 +71,6 @@ module hdmi
     output logic [BIT_HEIGHT-1:0] screen_height
 );
 
-`ifdef RES0_720P
-localparam CODE4HOR = 1512;
-localparam CODE4VER = 836;
-`else
-localparam CODE4HOR = 1650;
-localparam CODE4VER = 750;
-`endif
 
 localparam int NUM_CHANNELS = 3;
 logic hsync;
@@ -114,8 +109,8 @@ generate
             end
         4:
         begin
-            assign frame_width = CODE4HOR;
-            assign frame_height = CODE4VER;
+            assign frame_width = widthMax;
+            assign frame_height = heightMax;
             assign screen_width = 1280;
             assign screen_height = 720;
             assign hsync_porch_start = 110;
