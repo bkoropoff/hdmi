@@ -10,6 +10,17 @@ module hdmi
     // Pixel repetition, interlaced scans and other special output modes are not implemented (yet).
     parameter int VIDEO_ID_CODE = 1,
 
+    // The IT content bit indicates that image samples are generated in an ad-hoc
+    // manner (e.g. directly from values in a framebuffer, as by a PC video
+    // card) and therefore aren't suitable for filtering or analog
+    // reconstruction.  This is probably what you want if you treat pixels
+    // as "squares".  If you generate a properly bandlimited signal or obtain
+    // one from elsewhere (e.g. a camera), this can be turned off.
+    //
+    // This flag also tends to cause receivers to treat RGB values as full
+    // range (0-255).
+    parameter bit IT_CONTENT = 1'b1,
+
     // Defaults to minimum bit lengths required to represent positions.
     // Modify these parameters if you have alternate desired bit lengths.
     parameter int BIT_WIDTH = VIDEO_ID_CODE < 4 ? 10 : VIDEO_ID_CODE == 4 ? 11 : 12,
@@ -37,7 +48,21 @@ module hdmi
     // If you care about this, change it below.
     parameter bit [8*8-1:0] VENDOR_NAME = {"Unknown", 8'd0}, // Must be 8 bytes null-padded 7-bit ASCII
     parameter bit [8*16-1:0] PRODUCT_DESCRIPTION = {"FPGA", 96'd0}, // Must be 16 bytes null-padded 7-bit ASCII
-    parameter bit [7:0] SOURCE_DEVICE_INFORMATION = 8'h00 // See README.md or CTA-861-G for the list of valid codes
+    parameter bit [7:0] SOURCE_DEVICE_INFORMATION = 8'h00, // See README.md or CTA-861-G for the list of valid codes
+
+    // Starting screen coordinate when module comes out of reset.
+    //
+    // Setting these to something other than (0, 0) is useful when positioning
+    // an external video signal within a larger overall frame (e.g.
+    // letterboxing an input video signal). This allows you to synchronize the
+    // negative edge of reset directly to the start of the external signal
+    // instead of to some number of clock cycles before.
+    //
+    // You probably don't need to change these parameters if you are
+    // generating a signal from scratch instead of processing an
+    // external signal.
+    parameter int START_X = 0,
+    parameter int START_Y = 0
 )
 (
     input logic clk_pixel_x5,
@@ -55,8 +80,8 @@ module hdmi
     // All outputs below this line stay inside the FPGA
     // They are used (by you) to pick the color each pixel should have
     // i.e. always_ff @(posedge pixel_clk) rgb <= {8'd0, 8'(cx), 8'(cy)};
-    output logic [BIT_WIDTH-1:0] cx = BIT_WIDTH'(0),
-    output logic [BIT_HEIGHT-1:0] cy = BIT_HEIGHT'(0),
+    output logic [BIT_WIDTH-1:0] cx = START_X,
+    output logic [BIT_HEIGHT-1:0] cy = START_Y,
 
     // The screen is at the upper left corner of the frame.
     // 0,0 = 0,0 in video
@@ -183,8 +208,8 @@ always_ff @(posedge clk_pixel)
 begin
     if (reset)
     begin
-        cx <= BIT_WIDTH'(0);
-        cy <= BIT_HEIGHT'(0);
+        cx <= BIT_WIDTH'(START_X);
+        cy <= BIT_HEIGHT'(START_Y);
     end
     else
     begin
@@ -272,6 +297,7 @@ generate
         packet_picker #(
             .VIDEO_ID_CODE(VIDEO_ID_CODE),
             .VIDEO_RATE(VIDEO_RATE),
+            .IT_CONTENT(IT_CONTENT),
             .AUDIO_RATE(AUDIO_RATE),
             .AUDIO_BIT_WIDTH(AUDIO_BIT_WIDTH),
             .VENDOR_NAME(VENDOR_NAME),
