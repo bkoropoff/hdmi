@@ -47,10 +47,6 @@ module hdmi
     input logic reset,
     input logic [23:0] rgb,
     input logic [AUDIO_BIT_WIDTH-1:0] audio_sample_word [1:0],
-    
-    input logic setStart,
-    input logic [BIT_WIDTH-1:0] setStartX,
-    input logic [BIT_HEIGHT-1:0] setStartY,
 
     // These outputs go to your HDMI port
     output logic [2:0] tmds,
@@ -192,13 +188,8 @@ begin
     end
     else
     begin
-        if ( setStart && cx == frame_width-1'b1 ) begin
-          cx <= setStartX;
-          cy <= setStartY;
-        end else begin
-          cx <= cx == frame_width-1'b1 ? BIT_WIDTH'(0) : cx + 1'b1;
-          cy <= cx == frame_width-1'b1 ? cy == frame_height-1'b1 ? BIT_HEIGHT'(0) : cy + 1'b1 : cy;
-        end
+        cx <= cx == frame_width-1'b1 ? BIT_WIDTH'(0) : cx + 1'b1;
+        cy <= cx == frame_width-1'b1 ? cy == frame_height-1'b1 ? BIT_HEIGHT'(0) : cy + 1'b1 : cy;
     end
 end
 
